@@ -74,7 +74,11 @@ module Drag
                 # Check for slug duplication
                 check_slug = @page.slug.sub /-copy-?[0-9]*$/, ""
                 count = 0
-                duplicates = Page.find_all_by_parent_id( @loc == 2 ? @rel.id : @rel.parent.id, :conditions => [ "slug LIKE '#{check_slug}%%'" ] )
+                if Page.respond_to? 'locale' #probably using globalize2 extension
+                  duplicates = Page.find_all_by_parent_id( @loc == 2 ? @rel.id : @rel.parent.id, :joins => "join page_translations on pages.id = page_translations.page_id and page_translations.locale = '#{I18n.locale.to_s}'", :conditions => [ "slug LIKE '#{check_slug}%%'" ] )
+                else #not using globalize2 extension
+                  duplicates = Page.find_all_by_parent_id( @loc == 2 ? @rel.id : @rel.parent.id, :conditions => [ "slug LIKE '#{check_slug}%%'" ] )
+                end
                 duplicates.each do |d|
                   m = d.slug.match("^#{check_slug}(-copy-?([0-9]*))?$")
                   if !m.nil?
@@ -121,7 +125,7 @@ module Drag
           protected
           
           def drag_stylesheets
-            if current_user.send("admin?") or current_user.send("designer?")
+            if current_user.send("admin?") or current_user.send("designer?") or true
               include_stylesheet 'admin/extensions/drag/drag'
               include_javascript 'admin/extensions/drag/drag'
             end
